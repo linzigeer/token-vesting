@@ -3,21 +3,6 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use crate::constants::TREASURY_TOKEN_ACCOUNT;
 use crate::state::VestingAccount;
 
-pub fn create_vesting_account(context: Context<CreateVestingAccount>, company_name: String) -> Result<()> {
-    //全量初始化的时候建议用解引用
-    //部分字段更新建议直接访问
-    //逻辑复杂的更新建议用可变借用
-    *context.accounts.vesting_account = VestingAccount {
-        owner: context.accounts.signer.key(),
-        mint: context.accounts.mint.key(),
-        company_name,
-        treasury_token_account: context.accounts.treasury_token_account.key(),
-        treasury_bump: context.bumps.treasury_token_account,
-        bum: context.bumps.vesting_account,
-    };
-    Ok(())
-}
-
 #[derive(Accounts)]
 #[instruction(company_name: String)]
 pub struct CreateVestingAccount<'info> {
@@ -48,5 +33,20 @@ pub struct CreateVestingAccount<'info> {
     pub system_program: Program<'info, System>,
 
     pub token_program: Interface<'info, TokenInterface>,
+}
+
+pub fn create_vesting_account_iih(context: Context<CreateVestingAccount>, company_name: String) -> Result<()> {
+    //全量初始化的时候建议用解引用
+    //部分字段更新建议直接访问
+    //逻辑复杂的更新建议用可变借用
+    *context.accounts.vesting_account = VestingAccount {
+        owner: context.accounts.signer.key(),
+        mint: context.accounts.mint.key(),
+        company_name,
+        treasury_token_account: context.accounts.treasury_token_account.key(),
+        treasury_bump: context.bumps.treasury_token_account,
+        bump: context.bumps.vesting_account,
+    };
+    Ok(())
 }
 

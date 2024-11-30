@@ -1,122 +1,167 @@
 'use client'
 
-import { Keypair, PublicKey } from '@solana/web3.js'
-import { useMemo } from 'react'
-import { ellipsify } from '../ui/ui-layout'
-import { ExplorerLink } from '../cluster/cluster-ui'
-import { useTokenvestingProgram, useTokenvestingProgramAccount } from './tokenvesting-data-access'
+import {Keypair, PublicKey} from '@solana/web3.js'
+import {useMemo, useState} from 'react'
+import {ellipsify} from '../ui/ui-layout'
+import {ExplorerLink} from '../cluster/cluster-ui'
+import {useVestingProgram, useVestingProgramAccount} from './tokenvesting-data-access'
+import {useWallet} from "@solana/wallet-adapter-react";
 
-export function TokenvestingCreate() {
-  const { initialize } = useTokenvestingProgram()
+export function VestingCreate() {
+    const {createVestingAccount} = useVestingProgram();
+    const {publicKey} = useWallet();
+    const [company, setCompany] = useState("");
+    const [mint, setMint] = useState("");
 
-  return (
-    <button
-      className="btn btn-xs lg:btn-md btn-primary"
-      onClick={() => initialize.mutateAsync(Keypair.generate())}
-      disabled={initialize.isPending}
-    >
-      Create {initialize.isPending && '...'}
-    </button>
-  )
-}
+    if (!publicKey) {
+        return <p>Connect your wallet!</p>
+    }
 
-export function TokenvestingList() {
-  const { accounts, getProgramAccount } = useTokenvestingProgram()
+    const isFormValid = company.trim().length > 0 && mint.trim().length > 0;
 
-  if (getProgramAccount.isLoading) {
-    return <span className="loading loading-spinner loading-lg"></span>
-  }
-  if (!getProgramAccount.data?.value) {
+    const handleSubmit = () => {
+        if (publicKey && isFormValid) {
+            createVestingAccount.mutateAsync({companyName: company, mint: mint});
+        }
+    };
+
     return (
-      <div className="alert alert-info flex justify-center">
-        <span>Program account not found. Make sure you have deployed the program and are on the correct cluster.</span>
-      </div>
+        <div>
+            <input
+                type="text"
+                placeholder="Company Name"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="input input-bordered w-full max-w-xs"
+            />
+            <input
+                type="text"
+                placeholder="Token Mint Address"
+                value={mint}
+                onChange={(e) => setMint(e.target.value)}
+                className="input input-bordered w-full max-w-xs"
+            />
+            <button
+                className="btn btn-xs lg:btn-md btn-primary"
+                onClick={handleSubmit}
+                disabled={createVestingAccount.isPending || !isFormValid}
+            >
+                Create New Vesting Account {createVestingAccount.isPending && "..."}
+            </button>
+        </div>
     )
-  }
-  return (
-    <div className={'space-y-6'}>
-      {accounts.isLoading ? (
-        <span className="loading loading-spinner loading-lg"></span>
-      ) : accounts.data?.length ? (
-        <div className="grid md:grid-cols-2 gap-4">
-          {accounts.data?.map((account) => (
-            <TokenvestingCard key={account.publicKey.toString()} account={account.publicKey} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center">
-          <h2 className={'text-2xl'}>No accounts</h2>
-          No accounts found. Create one above to get started.
-        </div>
-      )}
-    </div>
-  )
 }
 
-function TokenvestingCard({ account }: { account: PublicKey }) {
-  const { accountQuery, incrementMutation, setMutation, decrementMutation, closeMutation } = useTokenvestingProgramAccount({
-    account,
-  })
+export function VestingList() {
+    const {accounts, getProgramAccount} = useVestingProgram()
 
-  const count = useMemo(() => accountQuery.data?.count ?? 0, [accountQuery.data?.count])
-
-  return accountQuery.isLoading ? (
-    <span className="loading loading-spinner loading-lg"></span>
-  ) : (
-    <div className="card card-bordered border-base-300 border-4 text-neutral-content">
-      <div className="card-body items-center text-center">
-        <div className="space-y-6">
-          <h2 className="card-title justify-center text-3xl cursor-pointer" onClick={() => accountQuery.refetch()}>
-            {count}
-          </h2>
-          <div className="card-actions justify-around">
-            <button
-              className="btn btn-xs lg:btn-md btn-outline"
-              onClick={() => incrementMutation.mutateAsync()}
-              disabled={incrementMutation.isPending}
-            >
-              Increment
-            </button>
-            <button
-              className="btn btn-xs lg:btn-md btn-outline"
-              onClick={() => {
-                const value = window.prompt('Set value to:', count.toString() ?? '0')
-                if (!value || parseInt(value) === count || isNaN(parseInt(value))) {
-                  return
-                }
-                return setMutation.mutateAsync(parseInt(value))
-              }}
-              disabled={setMutation.isPending}
-            >
-              Set
-            </button>
-            <button
-              className="btn btn-xs lg:btn-md btn-outline"
-              onClick={() => decrementMutation.mutateAsync()}
-              disabled={decrementMutation.isPending}
-            >
-              Decrement
-            </button>
-          </div>
-          <div className="text-center space-y-4">
-            <p>
-              <ExplorerLink path={`account/${account}`} label={ellipsify(account.toString())} />
-            </p>
-            <button
-              className="btn btn-xs btn-secondary btn-outline"
-              onClick={() => {
-                if (!window.confirm('Are you sure you want to close this account?')) {
-                  return
-                }
-                return closeMutation.mutateAsync()
-              }}
-              disabled={closeMutation.isPending}
-            >
-              Close
-            </button>
-          </div>
+    if (getProgramAccount.isLoading) {
+        return <span className="loading loading-spinner loading-lg"></span>
+    }
+    if (!getProgramAccount.data?.value) {
+        return (
+            <div className="alert alert-info flex justify-center">
+                <span>Program account not found. Make sure you have deployed the program and are on the correct cluster.</span>
+            </div>
+        )
+    }
+    return (
+        <div className={'space-y-6'}>
+            {accounts.isLoading ? (
+                <span className="loading loading-spinner loading-lg"></span>
+            ) : accounts.data?.length ? (
+                <div className="grid md:grid-cols-2 gap-4">
+                    {accounts.data?.map((account) => (
+                        <VestingCard key={account.publicKey.toString()} account={account.publicKey}/>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center">
+                    <h2 className={'text-2xl'}>No accounts</h2>
+                    No accounts found. Create one above to get started.
+                </div>
+            )}
         </div>
-      </div>
-    </div>
-  )
+    )
+}
+
+function VestingCard({account}: { account: PublicKey }) {
+    const {accountQuery, createEmployeeVesting} = useVestingProgramAccount({
+        account,
+    })
+
+    const[startTime, setStartTime] = useState(0);
+    const[endTime, setEndTime] = useState(0);
+    const[cliffTime, setCliffTime] = useState(0);
+    const[totalAllocatedAmount, setTotalAllocatedAmount] = useState(0);
+    const[beneficiary, setBeneficiary] = useState("");
+
+    const companyName = useMemo(() => accountQuery.data?.companyName ?? 0, [accountQuery.data?.companyName])
+
+    return accountQuery.isLoading ? (
+        <span className="loading loading-spinner loading-lg"></span>
+    ) : (
+        <div className="card card-bordered border-base-300 border-4 text-neutral-content">
+            <div className="card-body items-center text-center">
+                <div className="space-y-6">
+                    <h2 className="card-title justify-center text-3xl cursor-pointer"
+                        onClick={() => accountQuery.refetch()}>
+                        {companyName}
+                    </h2>
+                    <div className="card-actions justify-around">
+                        <input
+                            type="text"
+                            placeholder="Start Time"
+                            value={startTime || ""}
+                            onChange={(e) => setStartTime(parseInt(e.target.value))}
+                            className="input input-bordered w-full max-w-xs"
+                        />
+                        <input
+                            type="text"
+                            placeholder="End Time"
+                            value={endTime || ""}
+                            onChange={(e) => setEndTime(parseInt(e.target.value))}
+                            className="input input-bordered w-full max-w-xs"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Cliff Time"
+                            value={cliffTime || ""}
+                            onChange={(e) => setCliffTime(parseInt(e.target.value))}
+                            className="input input-bordered w-full max-w-xs"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Total Allocation"
+                            value={totalAllocatedAmount || ""}
+                            onChange={(e) => setTotalAllocatedAmount(parseInt(e.target.value))}
+                            className="input input-bordered w-full max-w-xs"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Beneficiary"
+                            value={beneficiary || ""}
+                            onChange={(e) => setBeneficiary(e.target.value)}
+                            className="input input-bordered w-full max-w-xs"
+                        />
+                        <button
+                            className="btn btn-xs lg:btn-md btn-outline"
+                            onClick={() =>
+                                createEmployeeVesting.mutateAsync({
+                                    startTime,
+                                    endTime,
+                                    cliffTime,
+                                    totalAllocatedAmount,
+                                    beneficiary
+                                })
+                            }
+                            disabled={createEmployeeVesting.isPending}
+                        >
+                            Create Employee Vesting Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }
