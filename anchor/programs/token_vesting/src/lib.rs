@@ -5,48 +5,48 @@ use anchor_lang::prelude::*;
 declare_id!("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
 
 #[program]
-pub mod tokenvesting {
+pub mod token_vesting {
     use super::*;
 
-  pub fn close(_ctx: Context<CloseTokenvesting>) -> Result<()> {
+  pub fn close(_ctx: Context<CloseTokenVesting>) -> Result<()> {
     Ok(())
   }
 
   pub fn decrement(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.tokenvesting.count = ctx.accounts.tokenvesting.count.checked_sub(1).unwrap();
+    ctx.accounts.token_vesting.count = ctx.accounts.token_vesting.count.checked_sub(1).unwrap();
     Ok(())
   }
 
   pub fn increment(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.tokenvesting.count = ctx.accounts.tokenvesting.count.checked_add(1).unwrap();
+    ctx.accounts.token_vesting.count = ctx.accounts.token_vesting.count.checked_add(1).unwrap();
     Ok(())
   }
 
-  pub fn initialize(_ctx: Context<InitializeTokenvesting>) -> Result<()> {
+  pub fn initialize(_ctx: Context<InitializeTokenVesting>) -> Result<()> {
     Ok(())
   }
 
   pub fn set(ctx: Context<Update>, value: u8) -> Result<()> {
-    ctx.accounts.tokenvesting.count = value.clone();
+    ctx.accounts.token_vesting.count = value.clone();
     Ok(())
   }
 }
 
 #[derive(Accounts)]
-pub struct InitializeTokenvesting<'info> {
+pub struct InitializeTokenVesting<'info> {
   #[account(mut)]
   pub payer: Signer<'info>,
 
   #[account(
   init,
-  space = 8 + Tokenvesting::INIT_SPACE,
+  space = 8 + TokenVesting::INIT_SPACE,
   payer = payer
   )]
-  pub tokenvesting: Account<'info, Tokenvesting>,
+  pub token_vesting: Account<'info, TokenVesting>,
   pub system_program: Program<'info, System>,
 }
 #[derive(Accounts)]
-pub struct CloseTokenvesting<'info> {
+pub struct CloseTokenVesting<'info> {
   #[account(mut)]
   pub payer: Signer<'info>,
 
@@ -54,17 +54,17 @@ pub struct CloseTokenvesting<'info> {
   mut,
   close = payer, // close account and return lamports to payer
   )]
-  pub tokenvesting: Account<'info, Tokenvesting>,
+  pub token_vesting: Account<'info, TokenVesting>,
 }
 
 #[derive(Accounts)]
 pub struct Update<'info> {
   #[account(mut)]
-  pub tokenvesting: Account<'info, Tokenvesting>,
+  pub token_vesting: Account<'info, TokenVesting>,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct Tokenvesting {
+pub struct TokenVesting {
   count: u8,
 }
